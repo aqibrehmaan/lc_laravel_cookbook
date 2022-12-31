@@ -5,6 +5,8 @@ use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Intervention\Image\Facades\Image;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,6 +61,7 @@ Route::patch('/announcement/update', function (Request $request) {
         'buttonColor' => 'required',
         'buttonLink' => 'required|url',
         'imageUpload' => 'file|image|max:20000',
+        'imageUploadFilePond' => 'string|nullable',
     ]);
 
     if ($request->imageUpload) {
@@ -80,10 +83,23 @@ Route::patch('/announcement/update', function (Request $request) {
         // $fields = array_merge($fields, ['imageUpload' => $path]);
     }
 
+    if ($request->imageUploadFilePond) {
+        $newFilename = Str::after($request->imageUploadFilePond, 'tmp/');
+        Storage::disk('public')->move($request->imageUploadFilePond, "images/$newFilename");
+        $fields = array_merge($fields, ['imageUploadFilePond' => "images/$newFilename"]);
+    }
 
     $announcement = Announcement::first();
 
     $announcement->update($fields);
 
     return back()->with('success_message', 'Announcement was updated!');
+});
+
+Route::post('/upload', function (Request $request) {
+    if ($request->imageUploadFilePond) {
+        $path = $request->file('imageUploadFilePond')->store('tmp', 'public');
+    }
+
+    return $path;
 });
